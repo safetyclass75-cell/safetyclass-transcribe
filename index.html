@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SafetyClass Transcribe</title>
+<style>
+:root {
+  --bg: #f4f6f8;
+  --surface: #ffffff;
+  --surface2: #eef1f4;
+  --text: #17212b;
+  --muted: #66717d;
+  --line: #d8dee5;
+  --accent: #d71920;
+  --accent2: #99131a;
+  --dark: #111820;
+  --good: #157347;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1318;
+    --surface: #151c23;
+    --surface2: #202932;
+    --text: #edf2f6;
+    --muted: #aab5bf;
+    --line: #303b46;
+    --accent: #ef4444;
+    --accent2: #c92e35;
+    --dark: #0b0f13;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+#app { min-height: 100vh; background: var(--bg); }
+header {
+  background: var(--dark); color: white; padding: 18px 28px;
+  display: flex; align-items: center; justify-content: space-between; gap: 18px;
+}
+.brand { display:flex; align-items:center; gap:12px; font-weight:800; letter-spacing:.2px; }
+.mark { width:36px; height:36px; border-radius:9px; background:var(--accent); display:grid; place-items:center; font-weight:900; }
+.tag { color:#aeb9c3; font-size:13px; }
+main { max-width: 1080px; margin: 0 auto; padding: 38px 22px 60px; }
+.hero { text-align:center; max-width:760px; margin:0 auto 28px; }
+.hero h1 { margin:0 0 10px; font-size: clamp(30px, 5vw, 46px); line-height:1.05; }
+.hero p { margin:0; color:var(--muted); font-size:16px; line-height:1.6; }
+.card {
+  background:var(--surface); border:1px solid var(--line); border-radius:18px;
+  box-shadow:0 10px 35px rgba(0,0,0,.06); overflow:hidden;
+}
+.upload { padding:28px; }
+.drop {
+  border:2px dashed var(--line); border-radius:15px; padding:44px 20px; text-align:center;
+  transition:.2s; cursor:pointer; background:var(--surface2);
+}
+.drop:hover, .drop.drag { border-color:var(--accent); transform:translateY(-1px); }
+.upload-icon { font-size:40px; margin-bottom:8px; }
+.drop h2 { margin:5px 0 7px; font-size:22px; }
+.drop p { color:var(--muted); margin:0 0 18px; }
+button, select {
+  border:1px solid var(--line); border-radius:10px; background:var(--surface); color:var(--text);
+  padding:10px 14px; font:inherit; cursor:pointer;
+}
+.primary { background:var(--accent); color:white; border-color:var(--accent); font-weight:700; }
+.primary:hover { background:var(--accent2); }
+input[type=file] { display:none; }
+.filebar { display:none; padding:18px 22px; border-top:1px solid var(--line); align-items:center; justify-content:space-between; gap:15px; }
+.filebar.show { display:flex; }
+.fileinfo { min-width:0; }
+.fileinfo strong { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.fileinfo span { color:var(--muted); font-size:13px; }
+.actions { display:flex; flex-wrap:wrap; gap:8px; }
+.workspace { display:none; margin-top:22px; }
+.workspace.show { display:block; }
+.toolbar {
+  padding:14px 18px; border-bottom:1px solid var(--line); display:flex; gap:9px;
+  flex-wrap:wrap; align-items:center; justify-content:space-between;
+}
+.toolbar-left, .toolbar-right { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.status { color:var(--muted); font-size:13px; }
+.engine { color:var(--good); font-size:12px; font-weight:700; padding:7px 9px; border-radius:8px; background:rgba(21,115,71,.09); }
+.editor { display:grid; grid-template-columns: 280px 1fr; min-height:420px; }
+.media { padding:20px; border-right:1px solid var(--line); background:var(--surface2); }
+video, audio { width:100%; border-radius:10px; }
+.media h3 { font-size:14px; margin:0 0 10px; }
+.media p { font-size:13px; color:var(--muted); line-height:1.5; }
+.transcript { padding:24px; }
+.transcript h2 { margin:0 0 12px; font-size:18px; }
+#text {
+  width:100%; min-height:310px; resize:vertical; border:1px solid var(--line); border-radius:12px;
+  padding:18px; background:var(--surface); color:var(--text); font: 15px/1.7 inherit; outline:none;
+}
+#text:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(215,25,32,.1); }
+.segments { margin-top:12px; max-height:240px; overflow:auto; border:1px solid var(--line); border-radius:12px; display:none; }
+.segment { width:100%; display:block; text-align:left; border:0; border-bottom:1px solid var(--line); border-radius:0; padding:10px 12px; background:var(--surface); color:var(--text); }
+.segment:last-child { border-bottom:0; }
+.segment:hover, .segment.active { background:var(--surface2); }
+.segment-time { color:var(--accent); font-weight:700; font-size:12px; margin-right:8px; }
+.notice {
+  margin-top:18px; padding:13px 15px; border-radius:10px; background:var(--surface2);
+  color:var(--muted); font-size:13px; line-height:1.5;
+}
+footer { text-align:center; color:var(--muted); font-size:12px; padding:0 20px 28px; }
+@media (max-width:760px) {
+  header { padding:15px 18px; }
+  .tag { display:none; }
+  main { padding:25px 14px 45px; }
+  .upload { padding:18px; }
+  .editor { grid-template-columns:1fr; }
+  .media { border-right:0; border-bottom:1px solid var(--line); }
+  .toolbar { align-items:flex-start; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+<header>
+  <div class="brand"><div class="mark">S</div><div>SafetyClass Transcribe</div></div>
+  <div class="tag">Private • Browser-based • Training-ready</div>
+</header>
+
+<main>
+<section class="hero">
+  <h1>Turn recordings into usable transcripts.</h1>
+  <p>Upload a class, meeting, interview, toolbox talk, or safety recording. Prepare the recording now; local AI transcription is the next engine layer.</p>
+</section>
+
+<section class="card upload">
+  <label class="drop" id="drop">
+    <div class="upload-icon">🎙️</div>
+    <h2>Drop an audio or video file here</h2>
+    <p>Choose a recording to begin. No account required.</p>
+    <span class="primary" style="display:inline-block">Choose File</span>
+    <input id="file" type="file" accept="audio/*,video/*">
+  </label>
+  <div class="filebar" id="filebar">
+    <div class="fileinfo"><strong id="filename"></strong><span id="filesize"></span></div>
+    <div class="actions"><button id="transcribe" class="primary">Start Transcription</button><button id="clear">Remove</button></div>
+  </div>
+</section>
+
+<section class="card workspace" id="workspace">
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <select id="language" aria-label="Language">
+        <option>English</option><option>Spanish (Mexico)</option><option>English + Spanish</option>
+      </select>
+      <button id="speaker">Add Speaker Labels</button>
+      <button id="timestamps">Add Timestamps</button>
+    </div>
+    <div class="toolbar-right">
+      <span class="engine" id="engine">LOCAL AI • READY</span>
+      <span class="status" id="status">Ready</span>
+      <button id="txt">Export TXT</button>
+      <button id="copy">Copy</button>
+    </div>
+  </div>
+  <div class="editor">
+    <aside class="media">
+      <h3>Recording</h3>
+      <div id="player"></div>
+      <p>Use the player to review the recording while editing the transcript.</p>
+      <div class="notice"><strong>Local AI engine:</strong> designed for Whisper running in the browser. WebGPU is preferred when available, with a WASM fallback. The model is downloaded once and can then be cached by the browser.</div>
+    </aside>
+    <section class="transcript">
+      <h2>Transcript</h2>
+      <textarea id="text" spellcheck="true" placeholder="Your transcript will appear here..."></textarea>
+      <div class="segments" id="segments" aria-label="Transcript timestamps"></div>
+    </section>
+  </div>
+</section>
+</main>
+<footer>SafetyClass Transcribe • Version 1 prototype</footer>
+</div>
+
+<script type="module">
+import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0';
+env.allowLocalModels = false;
+env.useBrowserCache = true;
+
+const fileInput = document.getElementById('file');
+const drop = document.getElementById('drop');
+const filebar = document.getElementById('filebar');
+const workspace = document.getElementById('workspace');
+const filename = document.getElementById('filename');
+const filesize = document.getElementById('filesize');
+const status = document.getElementById('status');
+const text = document.getElementById('text');
+const segments = document.getElementById('segments');
+let currentFile = null;
+let objectUrl = null;
+let transcriber = null;
+let transcriberDevice = 'wasm';
+let transcriberModel = '';
+let lastChunks = [];
+
+function hasWebGPU() {
+  return !!navigator.gpu;
+}
+
+function modelFor(language) {
+  return language === 'English' ? 'onnx-community/whisper-tiny.en' : 'onnx-community/whisper-small';
+}
+
+async function loadTranscriber(language) {
+  const model = modelFor(language);
+  if (transcriber && transcriberModel === model) return transcriber;
+  transcriber = null;
+  transcriberModel = '';
+  transcriberDevice = hasWebGPU() ? 'webgpu' : 'wasm';
+  document.getElementById('engine').textContent = transcriberDevice === 'webgpu' ? 'LOCAL AI • WEBGPU' : 'LOCAL AI • WASM';
+  status.textContent = 'Loading Whisper model… first load may take a while';
+  const dtype = transcriberDevice === 'webgpu' ? 'q4' : 'q8';
+  const modelPromise = pipeline('automatic-speech-recognition', model, {
+    device: transcriberDevice,
+    dtype,
+    progress_callback: (p) => {
+      if (p && typeof p.progress === 'number') {
+        status.textContent = 'Loading Whisper model… ' + Math.round(p.progress) + '%';
+      }
+    }
+  });
+  try {
+    transcriber = await modelPromise;
+    transcriberModel = model;
+    status.textContent = 'Whisper ready';
+    return transcriber;
+  } catch (err) {
+    transcriber = null;
+    if (transcriberDevice === 'webgpu') {
+      status.textContent = 'WebGPU unavailable — retrying with WASM…';
+      transcriberDevice = 'wasm';
+      const fallbackDtype = { encoder_model: 'q8', decoder_model_merged: 'q8' };
+      transcriber = await pipeline('automatic-speech-recognition', model, {
+        device: 'wasm',
+        dtype: fallbackDtype,
+        progress_callback: (p) => {
+          if (p && typeof p.progress === 'number') status.textContent = 'Loading WASM model… ' + Math.round(p.progress) + '%';
+        }
+      });
+      transcriberModel = model;
+      document.getElementById('engine').textContent = 'LOCAL AI • WASM FALLBACK';
+      return transcriber;
+    }
+    throw err;
+  }
+}
+
+async function fileToAudio(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  const ctx = new AudioCtx();
+  try {
+    const decoded = await ctx.decodeAudioData(arrayBuffer);
+    const targetRate = 16000;
+    const channels = decoded.numberOfChannels;
+    const length = Math.ceil(decoded.duration * targetRate);
+    const offline = new OfflineAudioContext(1, length, targetRate);
+    const source = offline.createBufferSource();
+    source.buffer = decoded;
+    source.connect(offline.destination);
+    source.start();
+    const rendered = await offline.startRendering();
+    const data = rendered.getChannelData(0);
+    if (channels > 1) return data;
+    return data;
+  } finally {
+    await ctx.close();
+  }
+}
+
+function formatTime(seconds) {
+  if (seconds == null || Number.isNaN(seconds)) return '00:00';
+  const s = Math.max(0, Math.floor(seconds));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  return h ? String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0')
+    : String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
+}
+
+function renderChunks(chunks) {
+  if (!chunks || !chunks.length) return '';
+  return chunks.map(chunk => {
+    const start = Array.isArray(chunk.timestamp) ? chunk.timestamp[0] : null;
+    const end = Array.isArray(chunk.timestamp) ? chunk.timestamp[1] : null;
+    const stamp = '[' + formatTime(start) + (end != null ? '–' + formatTime(end) : '') + '] ';
+    return stamp + String(chunk.text || '').trim();
+  }).join('\n');
+}
+
+function showSegments(chunks) {
+  lastChunks = Array.isArray(chunks) ? chunks : [];
+  segments.innerHTML = '';
+  if (!lastChunks.length) { segments.style.display='none'; return; }
+  lastChunks.forEach((chunk, i) => {
+    const start = Array.isArray(chunk.timestamp) ? chunk.timestamp[0] : null;
+    const end = Array.isArray(chunk.timestamp) ? chunk.timestamp[1] : null;
+    if (start == null) return;
+    const button = document.createElement('button');
+    button.className='segment';
+    button.dataset.index=String(i);
+    button.dataset.start=String(start);
+    button.dataset.end=end == null ? '' : String(end);
+    button.innerHTML='<span class="segment-time">['+formatTime(start)+(end != null ? '–'+formatTime(end) : '')+']</span>'+String(chunk.text || '').trim();
+    button.onclick=()=>{ const media=document.querySelector('#player audio, #player video'); if(media){media.currentTime=start; media.play();} };
+    segments.appendChild(button);
+  });
+  segments.style.display=segments.children.length ? 'block' : 'none';
+}
+
+function size(n) {
+  const units=['B','KB','MB','GB']; let i=0;
+  while(n>=1024 && i<units.length-1){n/=1024;i++;}
+  return n.toFixed(i ? 1 : 0)+' '+units[i];
+}
+function setFile(file) {
+  if (!file) return;
+  currentFile=file;
+  if (objectUrl) URL.revokeObjectURL(objectUrl);
+  objectUrl=URL.createObjectURL(file);
+  filename.textContent=file.name;
+  filesize.textContent=size(file.size)+' • '+(file.type || 'media');
+  filebar.classList.add('show');
+  workspace.classList.add('show');
+  const player=document.getElementById('player');
+  player.innerHTML='';
+  const el=document.createElement(file.type.startsWith('video/') ? 'video' : 'audio');
+  el.controls=true; el.src=objectUrl;
+  player.appendChild(el);
+  el.addEventListener('timeupdate',()=>{
+    const t=el.currentTime;
+    [...segments.children].forEach((item)=>{
+      const start=Number(item.dataset.start), end=item.dataset.end ? Number(item.dataset.end) : Infinity;
+      item.classList.toggle('active', t>=start && t<end);
+    });
+  });
+  status.textContent='Ready to transcribe';
+  text.value='';
+  lastChunks=[];
+  segments.innerHTML='';
+  segments.style.display='none';
+}
+fileInput.addEventListener('change', e=>setFile(e.target.files[0]));
+['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('drag');}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('drag');}));
+drop.addEventListener('drop',e=>setFile(e.dataTransfer.files[0]));
+document.getElementById('clear').onclick=()=>{
+  currentFile=null; fileInput.value=''; filebar.classList.remove('show'); workspace.classList.remove('show');
+  if(objectUrl) URL.revokeObjectURL(objectUrl);
+};
+document.getElementById('transcribe').onclick=()=>{
+  if(!currentFile)return;
+  (async()=>{
+    const button=document.getElementById('transcribe');
+    const language=document.getElementById('language').value;
+    button.disabled=true;
+    button.textContent='Transcribing…';
+    document.getElementById('engine').textContent='LOCAL AI • LOADING';
+    try {
+      const asr=await loadTranscriber(language);
+      status.textContent='Preparing audio…';
+      const audio=await fileToAudio(currentFile);
+      status.textContent='Transcribing locally…';
+      const options={chunk_length_s:30,stride_length_s:5,return_timestamps:true,task:'transcribe'};
+      if(language==='Spanish (Mexico)') options.language='spanish';
+      const output=await asr(audio, options);
+      text.value=renderChunks(output.chunks) || String(output.text || '').trim();
+      showSegments(output.chunks);
+      document.getElementById('engine').textContent='LOCAL AI • READY';
+      status.textContent='Transcription complete — audio stayed in this browser';
+    } catch(err) {
+      console.error(err);
+      document.getElementById('engine').textContent='LOCAL AI • ERROR';
+      status.textContent='Transcription failed: '+(err?.message || 'Unknown error');
+    } finally {
+      button.disabled=false;
+      button.textContent='Start Transcription';
+    }
+  })();
+};
+document.getElementById('speaker').onclick=()=>{
+  text.value=text.value ? text.value.replace(/^/gm, 'Speaker 1: ') : 'Speaker 1: ';
+  status.textContent='Speaker labels added for editing';
+};
+document.getElementById('timestamps').onclick=()=>{
+  if(lastChunks.length){ showSegments(lastChunks); status.textContent='Click a timestamp to jump there'; }
+  else status.textContent='Transcribe first to get real timestamps';
+};
+document.getElementById('copy').onclick=async()=>{
+  await navigator.clipboard.writeText(text.value);
+  status.textContent='Transcript copied';
+};
+document.getElementById('txt').onclick=()=>{
+  const blob=new Blob([text.value],{type:'text/plain'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='transcript.txt'; a.click();
+  status.textContent='TXT exported';
+};
+</script>
+</body>
+</html>
